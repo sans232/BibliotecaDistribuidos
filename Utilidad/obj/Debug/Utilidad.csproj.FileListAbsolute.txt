@@ -1,0 +1,6 @@
+D:\Download\027_SistemaBibliotecaASPMVC-main (1)\027_SistemaBibliotecaASPMVC-main\Utilidad\bin\Debug\Utilidad.dll
+D:\Download\027_SistemaBibliotecaASPMVC-main (1)\027_SistemaBibliotecaASPMVC-main\Utilidad\bin\Debug\Utilidad.pdb
+D:\Download\027_SistemaBibliotecaASPMVC-main (1)\027_SistemaBibliotecaASPMVC-main\Utilidad\obj\Debug\Utilidad.csproj.AssemblyReference.cache
+D:\Download\027_SistemaBibliotecaASPMVC-main (1)\027_SistemaBibliotecaASPMVC-main\Utilidad\obj\Debug\Utilidad.csproj.CoreCompileInputs.cache
+D:\Download\027_SistemaBibliotecaASPMVC-main (1)\027_SistemaBibliotecaASPMVC-main\Utilidad\obj\Debug\Utilidad.dll
+D:\Download\027_SistemaBibliotecaASPMVC-main (1)\027_SistemaBibliotecaASPMVC-main\Utilidad\obj\Debug\Utilidad.pdb
