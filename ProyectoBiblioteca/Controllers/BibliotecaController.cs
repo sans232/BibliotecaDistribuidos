@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Web;
 using System.Web.Mvc;
 
@@ -14,6 +15,7 @@ namespace ProyectoBiblioteca.Controllers
     public class BibliotecaController : Controller
     {
         // GET: Biblioteca
+        private FirebaseLogica cnfirebase = new FirebaseLogica();
         public ActionResult Libros()
         {
             return View();
@@ -109,63 +111,84 @@ namespace ProyectoBiblioteca.Controllers
         [HttpGet]
         public JsonResult ListarLibro()
         {
-            List<Libro> oLista = new List<Libro>();
-
-            oLista = LibroLogica.Instancia.Listar();
-           
+            var oLista = LibroLogica.Instancia.Listar();
             return Json(new { data = oLista }, JsonRequestBehavior.AllowGet);
         }
-        [HttpPost]
-        public JsonResult GuardarLibro(string objeto, HttpPostedFileBase imagenArchivo)
-        {
 
-            Response oresponse = new Response() { resultado = true, mensaje = "" };
+        [HttpPost]
+        public async Task<JsonResult> GuardarLibro(string objeto, HttpPostedFileBase imagenArchivo)
+        {
+            var response = new Response() { resultado = false, mensaje = "" };
 
             try
             {
-                Libro oLibro = new Libro();
-                oLibro = JsonConvert.DeserializeObject<Libro>(objeto);
+                var libro = JsonConvert.DeserializeObject<Libro>(objeto);
 
-                string GuardarEnRuta = ConfigurationManager.AppSettings["ruta_imagenes_libros"];
-
-                oLibro.RutaPortada = GuardarEnRuta;
-                oLibro.NombrePortada = "";
-
-                if (!Directory.Exists(GuardarEnRuta))
-                    Directory.CreateDirectory(GuardarEnRuta);
-
-                if (oLibro.IdLibro == 0)
+            
+                if (libro.IdLibro == 0)
                 {
-                    int id = LibroLogica.Instancia.Registrar(oLibro);
-                    oLibro.IdLibro = id;
-                    oresponse.resultado = oLibro.IdLibro == 0 ? false : true;
+                    if (imagenArchivo != null)
+                    {
+                        var firebaseLogica = new FirebaseLogica();
+                        var extension = Path.GetExtension(imagenArchivo.FileName);
+                        var nombreArchivo = libro.Titulo.Replace(" ", "_") + extension;
 
+                        var rutaImagen = await firebaseLogica.SubirStorage(imagenArchivo.InputStream, nombreArchivo);
+
+                        if (string.IsNullOrEmpty(rutaImagen))
+                        {
+                            response.mensaje = "Error al subir la imagen a Firebase Storage.";
+                            return Json(response, JsonRequestBehavior.AllowGet);
+                        }
+
+                        libro.RutaPortada = rutaImagen;
+                        libro.NombrePortada = nombreArchivo;
+                    }
+
+                    int id = LibroLogica.Instancia.Registrar(libro);
+                    libro.IdLibro = id;
+
+                    response.resultado = id > 0;
+                    if (!response.resultado)
+                    {
+                        response.mensaje = "Error al registrar el libro.";
+                    }
                 }
-                else
+                else // Modificar un libro existente
                 {
-                    oresponse.resultado = LibroLogica.Instancia.Modificar(oLibro);
+                    // Subir una nueva imagen si se ha proporcionado
+                    if (imagenArchivo != null)
+                    {
+                        var firebaseLogica = new FirebaseLogica();
+                        var extension = Path.GetExtension(imagenArchivo.FileName);
+                        var nombreArchivo = libro.IdLibro + extension;
+
+                        var rutaImagen = await firebaseLogica.SubirStorage(imagenArchivo.InputStream, nombreArchivo);
+
+                        if (string.IsNullOrEmpty(rutaImagen))
+                        {
+                            response.mensaje = "Error al subir la imagen a Firebase Storage.";
+                            return Json(response, JsonRequestBehavior.AllowGet);
+                        }
+
+                        libro.RutaPortada = rutaImagen; // Asignar la nueva URL con el token
+                        libro.NombrePortada = nombreArchivo;
+                    }
+
+                    response.resultado = LibroLogica.Instancia.Modificar(libro);
+                    if (!response.resultado)
+                    {
+                        response.mensaje = "Error al modificar el libro.";
+                    }
                 }
-
-
-                if (imagenArchivo != null && oLibro.IdLibro != 0)
-                {
-                    string extension = Path.GetExtension(imagenArchivo.FileName);
-                    GuardarEnRuta = Path.Combine(GuardarEnRuta,oLibro.IdLibro.ToString() + extension);
-                    oLibro.NombrePortada = oLibro.IdLibro.ToString() + extension;
-
-                    imagenArchivo.SaveAs(GuardarEnRuta);
-
-                    oresponse.resultado = LibroLogica.Instancia.ActualizarRutaImagen(oLibro);
-                }
-
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                oresponse.resultado = false;
-                oresponse.mensaje = e.Message;
+                response.resultado = false;
+                response.mensaje = $"Error durante la operación: {ex.Message}";
             }
 
-            return Json(oresponse, JsonRequestBehavior.AllowGet);
+            return Json(response, JsonRequestBehavior.AllowGet);
         }
 
         [HttpPost]

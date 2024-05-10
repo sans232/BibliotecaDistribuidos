@@ -288,16 +288,16 @@
             $("#cboEstado").val(1);
 
             if (json != null) {
-
                 $("#txtid").val(json.IdLibro);
-                $("#imglibro").attr({ "src": "data:image/" + json.extension + ";base64," + json.base64 });
+                // Ajuste para obtener el URL correcto
+                $("#imglibro").attr({ "src": json.RutaPortada });
                 $("#txttitulo").val(json.Titulo);
                 $("#cboautor").val(json.oAutor.IdAutor);
-                $("#cbocategoria").val(json.oCategoria.IdCategoria)
-                $("#cboeditorial").val(json.oEditorial.IdEditorial)
+                $("#cbocategoria").val(json.oCategoria.IdCategoria);
+                $("#cboeditorial").val(json.oEditorial.IdEditorial);
                 $("#txtubicacion").val(json.Ubicacion);
                 $("#txtejemplares").val(json.Ejemplares);
-                $("#cboEstado").val(json.Estado == true ? 1 : 0);
+                $("#cboEstado").val(json.Estado ? 1 : 0);
             }
 
             $('#FormModal').modal('show');
@@ -330,48 +330,47 @@
         });
 
         function Guardar() {
+    var ImagenSeleccionada = ($("#filelibro"))[0].files[0];
 
-            var ImagenSeleccionada = ($("#filelibro"))[0].files[0];
+    var objeto = {
+        IdLibro: $("#txtid").val(),
+        Titulo: $("#txttitulo").val(),
+        oAutor: { IdAutor: $("#cboautor option:selected").val() },
+        oCategoria: { IdCategoria: $("#cbocategoria option:selected").val() },
+        oEditorial: { IdEditorial: $("#cboeditorial option:selected").val() },
+        Ubicacion: $("#txtubicacion").val(),
+        Ejemplares: $("#txtejemplares").val(),
+        Estado: parseInt($("#cboEstado").val()) === 1
+    };
 
-            var objeto = {
-                IdLibro: $("#txtid").val(),
-                Titulo: $("#txttitulo").val(),
-                oAutor: { IdAutor: $("#cboautor option:selected").val() },
-                oCategoria: { IdCategoria: $("#cbocategoria option:selected").val() },
-                oEditorial: { IdEditorial: $("#cboeditorial option:selected").val() },
-                Ubicacion: $("#txtubicacion").val(),
-                Ejemplares: $("#txtejemplares").val(),
-                Estado: parseInt($("#cboEstado").val()) == 1 ? true : false
+    var request = new FormData();
+    request.append("imagenArchivo", ImagenSeleccionada || null); // Asegurarse de no tener valores nulos
+    request.append("objeto", JSON.stringify(objeto));
+
+    jQuery.ajax({
+        url: '@Url.Action("GuardarLibro", "Biblioteca")',
+        type: "POST",
+        data: request,
+        processData: false,
+        contentType: false,
+        success: function (data) {
+            if (data.resultado) {
+                tabladata.ajax.reload();
+                $('#FormModal').modal('hide');
+            } else {
+                alert("No se pudo guardar los cambios: " + (data.mensaje || "Sin detalles"));
             }
+        },
+        error: function (error) {
+            console.error("Error al guardar:", error);
+            alert("Ocurrió un error al guardar el libro. Revisa la consola para más detalles.");
+        },
+        beforeSend: function () {
+            // Indicador de proceso, por ejemplo
+        },
+    });
+}
 
-            var request = new FormData();
-            request.append("imagenArchivo", ImagenSeleccionada);
-            request.append("objeto", JSON.stringify(objeto));
-
-            jQuery.ajax({
-                url: '@Url.Action("GuardarLibro", "Biblioteca")',
-                type: "POST",
-                data: request,
-                processData: false,
-                contentType : false,
-                success: function (data) {
-
-                    if (data.resultado) {
-                        tabladata.ajax.reload();
-                        $('#FormModal').modal('hide');
-                    } else {
-                        alert("No se pudo guardar los cambios")
-                    }
-                },
-                error: function (error) {
-                    console.log(error)
-                },
-                beforeSend: function () {
-
-                },
-            });
-
-        }
 
         $.fn.inputFilter = function (inputFilter) {
             return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function () {
