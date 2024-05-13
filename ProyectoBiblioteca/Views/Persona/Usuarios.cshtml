@@ -1,10 +1,15 @@
-﻿
-@{
+﻿@{
     ViewBag.Title = "Usuarios";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-
+<style>
+    #btn-generar-contrasena {
+        border-radius: 0px 5px 5px 0px;
+        border: solid 1px;
+        border-color: #d1d3e2;
+    }
+</style>
 <!-- DataTales Example -->
 <div class="card shadow mb-4">
     <div class="card-header py-3 bg-primary">
@@ -50,10 +55,8 @@
     </div>
 </div>
 
-
-
 <!-- Modal -->
-<div class="modal fade" id="FormModal" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+<div class="modal fade" id="FormModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
@@ -63,63 +66,39 @@
                 </button>
             </div>
             <div class="modal-body">
-                <input id="txtid" type="hidden" value="0" />
                 <form id="formNivel">
-                    <div class="row">
-                        <div class="col-sm-12">
-                            <div class="form-group">
-                                <label for="txtdescripcion">Nombre:</label>
-                                <input type="text" class="form-control required" id="txtnombre" name="descripcion" autocomplete="off">
-                            </div>
+                    <div class="form-group">
+                        <label for="txtnombre">Nombre:</label>
+                        <input type="text" class="form-control required" id="txtnombre" name="nombre" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label for="txtapellido">Apellido:</label>
+                        <input type="text" class="form-control required" id="txtapellido" name="apellido" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label for="txtcorreo">Correo:</label>
+                        <input type="text" class="form-control required" id="txtcorreo" name="correo" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label for="txtclave">Contraseña:</label>
+                        <div class="input-group mb-auto">
+                            <input type="password" class="form-control required" id="txtclave" name="clave" autocomplete="off">
+                            <button type="button" class="btn" id="btn-acciones-contrasena" value="0">Generar</button>
                         </div>
                     </div>
-                    <div class="row">
-                        <div class="col-sm-12">
-                            <div class="form-group">
-                                <label for="txtdescripcion">Apellido:</label>
-                                <input type="text" class="form-control required" id="txtapellido" name="descripcion" autocomplete="off">
-                            </div>
-                        </div>
+                    <div class="form-group">
+                        <label for="cbotipo">Tipo:</label>
+                        <select id="cbotipo" class="form-control">
+                        </select>
                     </div>
-                    <div class="row">
-                        <div class="col-sm-12">
-                            <div class="form-group">
-                                <label for="txtdescripcion">Correo:</label>
-                                <input type="text" class="form-control required" id="txtcorreo" name="descripcion" autocomplete="off">
-                            </div>
-                        </div>
+                    <div class="form-group">
+                        <label for="cboEstado">Estado:</label>
+                        <select id="cboEstado" class="form-control">
+                            <option value="1">Activo</option>
+                            <option value="0">No Activo</option>
+                        </select>
                     </div>
-                    <div class="row">
-                        <div class="col-sm-12">
-                            <div class="form-group">
-                                <label for="txtdescripcion">Contraseña:</label>
-                                <input type="password" class="form-control required" id="txtclave" name="descripcion" autocomplete="off">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-sm-12">
-                            <div class="form-group">
-                                <label for="cbotipo">Tipo:</label>
-                                <select id="cbotipo" class="form-control">
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-sm-12">
-                            <div class="form-group">
-                                <label for="cboEstado">Estado:</label>
-                                <select id="cboEstado" class="form-control">
-                                    <option value="1">Activo</option>
-                                    <option value="0">No Activo</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
                 </form>
-
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-danger" data-dismiss="modal">Cerrar</button>
@@ -130,33 +109,27 @@
 </div>
 
 
-
 @section scripts{
-
     <script>
         var tabladata;
 
         $(document).ready(function () {
-
             jQuery.ajax({
                 url: '@Url.Action("ListarTipoPersona", "Biblioteca")',
                 type: "GET",
-                data: null,
                 dataType: "json",
                 contentType: "application/json; charset=utf-8",
                 success: function (data) {
                     $.each(data.data, function (index, value) {
-                        if(value.Descripcion != "Lector")
-                            $("<option>").attr({ "value": value.IdTipoPersona }).text(value.Descripcion).appendTo("#cbotipo");
+                        if (value.Descripcion != "Lector") $("<option>")
+                            .attr({ "value": value.IdTipoPersona }).text(value.Descripcion).appendTo("#cbotipo");
                     });
                 },
-                error: function (error) {
-                    console.log(error)
-                }
+                error: function (error) { console.log(error) }
             });
 
             tabladata = $('#tabla').DataTable({
-                responsive:true,
+                responsive: true,
                 "ajax": {
                     "url": '@Url.Action("ListarPersona", "Biblioteca")',
                     "type": "GET",
@@ -166,50 +139,27 @@
                     { "data": "Nombre" },
                     { "data": "Apellido" },
                     { "data": "Correo" },
-                    {
-                        "data": "oTipoPersona", "render": function (data) {
-                            return data.Descripcion
-                        }
-                    },
+                    { "data": "oTipoPersona", "render": function (data) { return data.Descripcion } },
                     {
                         "data": "Estado", "render": function (data) {
-                            if (data) {
-                                return '<span class="badge badge-success p-2">Activo</span>'
-                            } else {
-                                return '<span class="badge badge-danger p-2">No Activo</span>'
-                            }
+                            if (data) { return '<span class="badge badge-success p-2">Activo</span>' }
+                            else { return '<span class="badge badge-danger p-2">No Activo</span>' }
                         }
                     },
                     {
                         "data": "IdPersona", "render": function (data, type, row, meta) {
-
-                            return $("<button>").addClass("btn btn-primary btn-editar btn-sm").append(
-                                $("<i>").addClass("fas fa-pen")
-                            ).attr({ "data-informacion": JSON.stringify(row) })[0].outerHTML
-                            +
-                            $("<button>").addClass("btn btn-danger btn-eliminar btn-sm ml-2").append(
-                                $("<i>").addClass("fas fa-trash")
-                            ).attr({ "data-informacion": JSON.stringify(row) })[0].outerHTML;
-
+                            return $("<button>").addClass("btn btn-primary btn-editar btn-sm").append($("<i>").addClass("fas fa-pen"))
+                                .attr({ "data-informacion": JSON.stringify(row) })[0].outerHTML +
+                                $("<button>").addClass("btn btn-danger btn-eliminar btn-sm ml-2").append($("<i>").addClass("fas fa-trash"))
+                                    .attr({ "data-informacion": JSON.stringify(row) })[0].outerHTML;
                         },
                         "orderable": false,
                         "searchable": false,
                         "width": "90px"
                     }
-
                 ],
-                "language": {
-                    "url": "//cdn.datatables.net/plug-ins/1.10.25/i18n/Spanish.json"
-                }
+                "language": { "url": "//cdn.datatables.net/plug-ins/1.10.25/i18n/Spanish.json" }
             });
-        });
-
-
-
-        $(document).on('click', '.btn-editar', function (event) {
-            var json = $(this).data("informacion")
-
-            abrirModal(json)
         });
 
         function abrirModal(json) {
@@ -222,57 +172,119 @@
             $("#cboEstado").val(1);
 
             if (json != null) {
-
                 $("#txtid").val(json.IdPersona);
                 $("#txtnombre").val(json.Nombre);
                 $("#txtapellido").val(json.Apellido);
                 $("#txtcorreo").val(json.Correo);
                 $("#txtclave").val(json.Clave);
                 $("#cbotipo").val(json.oTipoPersona.IdTipoPersona);
-                $("#cboEstado").val(json.Estado == true ? 1 : 0);
+                $("#cboEstado").val(json.Estado ? 1 : 0);
             }
 
             $('#FormModal').modal('show');
+
+            if (json && json.Clave) {
+                $('#txtclave').prop('disabled', false);
+                $('#btn-acciones-contrasena').text('Ver');
+                $('#btn-acciones-contrasena').val("1");
+            } else {
+                $('#txtclave').prop('disabled', true);
+                $('#btn-acciones-contrasena').text('Generar');
+                $('#btn-acciones-contrasena').val("0");
+            }
         }
 
-        $(document).on('click', '.btn-eliminar', function (event) {
-            var json = $(this).data("informacion")
+        $(document).on('click', '.btn-editar', function (event) {
+            var json = $(this).data("informacion");
+            abrirModal(json);
+        });
 
+        $(document).on('click', '.btn-eliminar', function (event) {
+            var json = $(this).data("informacion");
             jQuery.ajax({
                 url: '@Url.Action("EliminarPersona", "Biblioteca")',
                 type: "POST",
-                data: JSON.stringify({ id: json.IdPersona}),
+                data: JSON.stringify({ id: json.IdPersona }),
                 dataType: "json",
                 contentType: "application/json; charset=utf-8",
                 success: function (data) {
+                    if (data.resultado) { tabladata.ajax.reload(); }
+                    else { alert("No se pudo eliminar") }
+                },
+                error: function (error) { console.log(error) },
+                beforeSend: function () { },
+            });
+        });
 
-                    if (data.resultado) {
-                        tabladata.ajax.reload();
-                    } else {
-                        alert("No se pudo eliminar")
-                    }
-                },
-                error: function (error) {
-                    console.log(error)
-                },
-                beforeSend: function () {
+        function generarContrasena() {
+            var longitud = 10;
+            var caracteres = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789$&+,:;=?#|'<>.^*()%!-";
+            var contrasena = "";
+            for (var i = 0; i < longitud; i++) {
+                var caracter = caracteres.charAt(Math.floor(Math.random() * caracteres.length));
+                contrasena += caracter;
+            }
+            return contrasena;
+        }
 
-                },
+        function validarContrasena(contrasena) {
+            var tieneMayuscula = /[A-Z]/.test(contrasena);
+            var tieneMinuscula = /[a-z]/.test(contrasena);
+            var tieneNumero = /\d/.test(contrasena);
+            var tieneSimbolo = /[$&+,:;=?#|'<>.^*()%!-]/.test(contrasena);
+            var mensaje = "Debes usar por lo menos:";
+            if (!tieneMayuscula) { mensaje += "Una mayúscula. "; }
+            if (!tieneMinuscula) { mensaje += "Una minúscula. "; }
+            if (!tieneNumero) { mensaje += "Un número. "; }
+            if (!tieneSimbolo) { mensaje += "Un símbolo."; }
+            $("#password-alerts").text(mensaje);
+            return tieneMayuscula && tieneMinuscula && tieneNumero && tieneSimbolo;
+        }
+
+        $(document).ready(function () {
+            $("#btn-acciones-contrasena").click(function () {
+                var btnValue = parseInt($("#btn-acciones-contrasena").val()); 
+                switch (btnValue) {
+                    case 0:
+                        $('#txtclave').attr('type', 'password');
+                        var nuevaContrasena = generarContrasena();
+                        $("#txtclave").val(nuevaContrasena);
+                        validarContrasena(nuevaContrasena);
+                        break;
+                    case 1:
+                        if ($('#txtclave').attr('type') === "text") {
+                            $('#txtclave').attr('type', 'password');
+                        } else {
+                            $('#txtclave').attr('type', 'text');
+                        }
+                        break;
+                    default:
+                        $("#btn-acciones-contrasena").val("0");
+                        break;
+                }
             });
         });
 
         function Guardar() {
+            var contrasena = $("#txtclave").val();
+            var contrasenaAnterior = $("#txtclave").data("anterior");
+            if (contrasena === contrasenaAnterior) {
+                alert("La nueva contraseña es igual a la anterior.");
+                return;
+            }
+            if (!validarContrasena(contrasena)) { return; }
+
             var request = {
                 objeto: {
                     IdPersona: $("#txtid").val(),
                     Nombre: $("#txtnombre").val(),
                     Apellido: $("#txtapellido").val(),
                     Correo: $("#txtcorreo").val(),
-                    Clave: $("#txtclave").val(),
-                    oTipoPersona: { IdTipoPersona : $("#cbotipo option:selected").val() },
+                    Clave: contrasena,
+                    oTipoPersona: { IdTipoPersona: $("#cbotipo option:selected").val() },
                     Estado: parseInt($("#cboEstado").val()) == 1 ? true : false
                 }
-            }
+            };
 
             jQuery.ajax({
                 url: '@Url.Action("GuardarPersona", "Biblioteca")',
@@ -281,26 +293,16 @@
                 dataType: "json",
                 contentType: "application/json; charset=utf-8",
                 success: function (data) {
-
                     if (data.resultado) {
                         tabladata.ajax.reload();
                         $('#FormModal').modal('hide');
-                    } else {
-                        alert("No se pudo guardar los cambios");
-                    }
+                    } else { alert("No se pudo guardar los cambios"); }
                 },
-                error: function (error) {
-                    console.log(error)
-                },
-                beforeSend: function () {
-
-                },
+                error: function (error) { console.log(error) },
+                beforeSend: function () { },
             });
-
         }
 
+
     </script>
-
 }
-
-
