@@ -20,7 +20,7 @@ namespace ProyectoBiblioteca.Controllers
         public ActionResult Index(string correo, string clave)
         {
 
-            Persona ousuario = PersonaLogica.Instancia.Listar().Where(u => u.Correo == correo && u.Clave == clave && u.oTipoPersona.IdTipoPersona != 3).FirstOrDefault();
+            Persona ousuario = PersonaLogica.Instancia.Listar().Where(u => u.Correo == correo && u.Clave == HashHelper.ComputeSha256Hash(clave) && u.oTipoPersona.IdTipoPersona != 3).FirstOrDefault();
 
             if (ousuario == null)
             {

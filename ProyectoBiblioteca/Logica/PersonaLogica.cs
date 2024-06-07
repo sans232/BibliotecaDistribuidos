@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Web;
 
+
 namespace ProyectoBiblioteca.Logica
 {
     public class PersonaLogica
@@ -36,15 +37,18 @@ namespace ProyectoBiblioteca.Logica
         public bool Registrar(Persona objeto)
         {
             bool respuesta = true;
+
             using (SqlConnection oConexion = new SqlConnection(Conexion.CN))
             {
                 try
                 {
+                    //string hashedClave = HashHelper.ComputeSha256Hash(objeto.Clave);
                     SqlCommand cmd = new SqlCommand("sp_RegistrarPersona", oConexion);
                     cmd.Parameters.AddWithValue("Nombre", objeto.Nombre);
                     cmd.Parameters.AddWithValue("Apellido", objeto.Apellido);
                     cmd.Parameters.AddWithValue("Correo", objeto.Correo);
-                    cmd.Parameters.AddWithValue("Clave", objeto.Clave);
+                    //cmd.Parameters.AddWithValue("Clave", hashedClave);
+                    cmd.Parameters.AddWithValue("Clave", HashHelper.ComputeSha256Hash(objeto.Clave));
                     cmd.Parameters.AddWithValue("IdTipoPersona", objeto.oTipoPersona.IdTipoPersona);
                     cmd.Parameters.Add("Resultado", SqlDbType.Bit).Direction = ParameterDirection.Output;
                     cmd.CommandType = CommandType.StoredProcedure;
@@ -71,12 +75,14 @@ namespace ProyectoBiblioteca.Logica
             {
                 try
                 {
+                    //string hashedClave = HashHelper.ComputeSha256Hash(objeto.Clave);
                     SqlCommand cmd = new SqlCommand("sp_ModificarPersona", oConexion);
                     cmd.Parameters.AddWithValue("IdPersona", objeto.IdPersona);
                     cmd.Parameters.AddWithValue("Nombre", objeto.Nombre);
                     cmd.Parameters.AddWithValue("Apellido", objeto.Apellido);
                     cmd.Parameters.AddWithValue("Correo", objeto.Correo);
-                    cmd.Parameters.AddWithValue("Clave", objeto.Clave);
+                    //cmd.Parameters.AddWithValue("Clave", hashedClave);
+                    cmd.Parameters.AddWithValue("Clave", HashHelper.ComputeSha256Hash(objeto.Clave));
                     cmd.Parameters.AddWithValue("IdTipoPersona", objeto.oTipoPersona.IdTipoPersona);
                     cmd.Parameters.AddWithValue("Estado", objeto.Estado);
                     cmd.Parameters.Add("Resultado", SqlDbType.Bit).Direction = ParameterDirection.Output;

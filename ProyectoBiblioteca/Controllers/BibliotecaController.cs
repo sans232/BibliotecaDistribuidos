@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using ProyectoBiblioteca.Logica;
 using ProyectoBiblioteca.Models;
 using System;
@@ -6,6 +7,8 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
 using System.Web;
 using System.Web.Mvc;
@@ -36,84 +39,274 @@ namespace ProyectoBiblioteca.Controllers
             return View();
         }
 
-        [HttpGet]
-        public JsonResult ListarCategoria()
+        private readonly HttpClient _httpClient;
+        private readonly string _apiBaseUrl = "https://webapibibliloteca2.azurewebsites.net/api/";
+
+        public BibliotecaController()
         {
-            List<Categoria> oLista = new List<Categoria>();
-            oLista = CategoriaLogica.Instancia.Listar();
-            return Json(new { data = oLista }, JsonRequestBehavior.AllowGet);
-        }
-        [HttpPost]
-        public JsonResult GuardarCategoria(Categoria objeto)
-        {
-            bool respuesta = false;
-            respuesta = (objeto.IdCategoria == 0) ? CategoriaLogica.Instancia.Registrar(objeto) : CategoriaLogica.Instancia.Modificar(objeto);
-            return Json(new { resultado = respuesta }, JsonRequestBehavior.AllowGet);
-        }
-        [HttpPost]
-        public JsonResult EliminarCategoria(int id)
-        {
-            bool respuesta = false;
-            respuesta = CategoriaLogica.Instancia.Eliminar(id);
-            return Json(new { resultado = respuesta }, JsonRequestBehavior.AllowGet);
+            _httpClient = new HttpClient();
         }
 
+       
 
+        // CATEGORIA METHODS
 
         [HttpGet]
-        public JsonResult ListarEditorial()
+        public async Task<JsonResult> ListarCategoria()
         {
-            List<Editorial> oLista = new List<Editorial>();
-            oLista = EditorialLogica.Instancia.Listar();
-            return Json(new { data = oLista }, JsonRequestBehavior.AllowGet);
-        }
-        [HttpPost]
-        public JsonResult GuardarEditorial(Editorial objeto)
-        {
-            bool respuesta = false;
-            respuesta = (objeto.IdEditorial == 0) ? EditorialLogica.Instancia.Registrar(objeto) : EditorialLogica.Instancia.Modificar(objeto);
-            return Json(new { resultado = respuesta }, JsonRequestBehavior.AllowGet);
-        }
-        [HttpPost]
-        public JsonResult EliminarEditorial(int id)
-        {
-            bool respuesta = false;
-            respuesta = EditorialLogica.Instancia.Eliminar(id);
-            return Json(new { resultado = respuesta }, JsonRequestBehavior.AllowGet);
+            var response = await _httpClient.GetAsync(_apiBaseUrl + "categoria");
+            var data = await response.Content.ReadAsStringAsync();
+            var categorias = JsonConvert.DeserializeObject<List<Categoria>>(data);
+            return Json(new { data = categorias }, JsonRequestBehavior.AllowGet);
         }
 
+        [HttpPost]
+        public async Task<JsonResult> GuardarCategoria(Categoria objeto)
+        {
+            try
+            {
+                var json = JsonConvert.SerializeObject(objeto);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
 
+                HttpResponseMessage response;
+                if (objeto.IdCategoria == 0)
+                {
+                    response = await _httpClient.PostAsync(_apiBaseUrl + "categoria", content);
+                }
+                else
+                {
+                    response = await _httpClient.PutAsync(_apiBaseUrl + $"categoria/{objeto.IdCategoria}", content); ;
+                }
+
+                response.EnsureSuccessStatusCode();
+
+                var result = await response.Content.ReadAsStringAsync();
+                var resultado = JsonConvert.DeserializeObject<bool>(result);
+
+                return Json(new { resultado }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception for debugging purposes
+                Console.WriteLine($"Error en GuardarCategoria: {ex.Message}");
+                return Json(new { resultado = false, mensaje = "Ocurrió un error al guardar la categoría.", detalle = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        [HttpPost]
+        public async Task<JsonResult> EliminarCategoria(int id)
+        {
+            try
+            {
+                // Asegúrate de que la URL esté bien formada
+                var response = await _httpClient.DeleteAsync($"{_apiBaseUrl}categoria/{id}");
+                response.EnsureSuccessStatusCode(); // Lanza una excepción si no se recibe un código de éxito
+
+                var result = await response.Content.ReadAsStringAsync();
+                var resultado = JsonConvert.DeserializeObject<bool>(result);
+
+                return Json(new { resultado }, JsonRequestBehavior.AllowGet);
+            }
+            catch (HttpRequestException ex)
+            {
+                // Captura y muestra cualquier problema de solicitud HTTP
+                Console.WriteLine($"Error en EliminarEditorial (HttpRequestException): {ex.Message}");
+                return Json(new { resultado = false, mensaje = "Ocurrió un error al eliminar editorial (HttpRequestException).", detalle = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                // Captura y muestra cualquier otro tipo de error
+                Console.WriteLine($"Error en EliminarAutor (Exception): {ex.Message}");
+                return Json(new { resultado = false, mensaje = "Ocurrió un error al eliminar editorial (Exception).", detalle = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // EDITORIAL METHODS
 
         [HttpGet]
-        public JsonResult ListarAutor()
+        public async Task<JsonResult> ListarEditorial()
         {
-            List<Autor> oLista = new List<Autor>();
-            oLista = AutorLogica.Instancia.Listar();
-            return Json(new { data = oLista }, JsonRequestBehavior.AllowGet);
-        }
-        [HttpPost]
-        public JsonResult GuardarAutor(Autor objeto)
-        {
-            bool respuesta = false;
-            respuesta = (objeto.IdAutor == 0) ? AutorLogica.Instancia.Registrar(objeto) : AutorLogica.Instancia.Modificar(objeto);
-            return Json(new { resultado = respuesta }, JsonRequestBehavior.AllowGet);
-        }
-        [HttpPost]
-        public JsonResult EliminarAutor(int id)
-        {
-            bool respuesta = false;
-            respuesta = AutorLogica.Instancia.Eliminar(id);
-            return Json(new { resultado = respuesta }, JsonRequestBehavior.AllowGet);
+            var response = await _httpClient.GetAsync(_apiBaseUrl + "editorial");
+            var data = await response.Content.ReadAsStringAsync();
+            var editorials = JsonConvert.DeserializeObject<List<Editorial>>(data);
+            return Json(new { data = editorials }, JsonRequestBehavior.AllowGet);
         }
 
+        [HttpPost]
+        public async Task<JsonResult> GuardarEditorial(Editorial objeto)
+        {
+            try
+            {
+                var json = JsonConvert.SerializeObject(objeto);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
 
+                HttpResponseMessage response;
+                if (objeto.IdEditorial == 0)
+                {
+                    response = await _httpClient.PostAsync(_apiBaseUrl + "editorial", content);
+                }
+                else
+                {
+                    response = await _httpClient.PutAsync(_apiBaseUrl + $"editorial/{objeto.IdEditorial}", content); ;
+                }
+
+                response.EnsureSuccessStatusCode();
+
+                var result = await response.Content.ReadAsStringAsync();
+                var resultado = JsonConvert.DeserializeObject<bool>(result);
+
+                return Json(new { resultado }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception for debugging purposes
+                Console.WriteLine($"Error en Guardar Editorial: {ex.Message}");
+                return Json(new { resultado = false, mensaje = "Ocurrió un error al guardar la editorial.", detalle = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        [HttpPost]
+        public async Task<JsonResult> EliminarEditorial(int id)
+        {
+            try
+            {
+                // Asegúrate de que la URL esté bien formada
+                var response = await _httpClient.DeleteAsync($"{_apiBaseUrl}editorial/{id}");
+                response.EnsureSuccessStatusCode(); // Lanza una excepción si no se recibe un código de éxito
+
+                var result = await response.Content.ReadAsStringAsync();
+                var resultado = JsonConvert.DeserializeObject<bool>(result);
+
+                return Json(new { resultado }, JsonRequestBehavior.AllowGet);
+            }
+            catch (HttpRequestException ex)
+            {
+                // Captura y muestra cualquier problema de solicitud HTTP
+                Console.WriteLine($"Error en EliminarEditorial (HttpRequestException): {ex.Message}");
+                return Json(new { resultado = false, mensaje = "Ocurrió un error al eliminar editorial (HttpRequestException).", detalle = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                // Captura y muestra cualquier otro tipo de error
+                Console.WriteLine($"Error en EliminarAutor (Exception): {ex.Message}");
+                return Json(new { resultado = false, mensaje = "Ocurrió un error al eliminar editorial (Exception).", detalle = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // AUTOR METHODS
 
         [HttpGet]
-        public JsonResult ListarLibro()
+        public async Task<JsonResult> ListarAutor()
         {
-            var oLista = LibroLogica.Instancia.Listar();
-            return Json(new { data = oLista }, JsonRequestBehavior.AllowGet);
+            var response = await _httpClient.GetAsync(_apiBaseUrl + "autor");
+            var data = await response.Content.ReadAsStringAsync();
+            var autors = JsonConvert.DeserializeObject<List<Autor>>(data);
+            return Json(new { data = autors }, JsonRequestBehavior.AllowGet);
         }
+
+        [HttpPost]
+        public async Task<JsonResult> GuardarAutor(Autor objeto)
+        {
+            try
+            {
+                var json = JsonConvert.SerializeObject(objeto);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                HttpResponseMessage response;
+                if (objeto.IdAutor == 0)
+                {
+                    response = await _httpClient.PostAsync(_apiBaseUrl + "autor", content);
+                }
+                else
+                {
+                    response = await _httpClient.PutAsync(_apiBaseUrl + $"autor/{objeto.IdAutor}", content); ;
+                }
+
+                response.EnsureSuccessStatusCode();
+
+                var result = await response.Content.ReadAsStringAsync();
+                var resultado = JsonConvert.DeserializeObject<bool>(result);
+
+                return Json(new { resultado }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception for debugging purposes
+                Console.WriteLine($"Error en Guardar Editorial: {ex.Message}");
+                return Json(new { resultado = false, mensaje = "Ocurrió un error al guardar la editorial.", detalle = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        [HttpPost]
+        public async Task<JsonResult> EliminarAutor(int id)
+        {
+            try
+            {
+                // Asegúrate de que la URL esté bien formada
+                var response = await _httpClient.DeleteAsync($"{_apiBaseUrl}autor/{id}");
+                response.EnsureSuccessStatusCode(); // Lanza una excepción si no se recibe un código de éxito
+
+                var result = await response.Content.ReadAsStringAsync();
+                var resultado = JsonConvert.DeserializeObject<bool>(result);
+
+                return Json(new { resultado }, JsonRequestBehavior.AllowGet);
+            }
+            catch (HttpRequestException ex)
+            {
+                // Captura y muestra cualquier problema de solicitud HTTP
+                Console.WriteLine($"Error en EliminarAutor (HttpRequestException): {ex.Message}");
+                return Json(new { resultado = false, mensaje = "Ocurrió un error al eliminar el autor (HttpRequestException).", detalle = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                // Captura y muestra cualquier otro tipo de error
+                Console.WriteLine($"Error en EliminarAutor (Exception): {ex.Message}");
+                return Json(new { resultado = false, mensaje = "Ocurrió un error al eliminar el autor (Exception).", detalle = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // LIBRO METHODS
+
+        [HttpGet]
+        public async Task<JsonResult> ObtenerLibro(int id)
+        {
+            try
+            {
+                var response = await _httpClient.GetAsync(_apiBaseUrl + $"libro/{id}");
+                response.EnsureSuccessStatusCode();
+
+                var result = await response.Content.ReadAsStringAsync();
+                var libro = JsonConvert.DeserializeObject<Libro>(result);
+
+                return Json(new { libro }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error en ObtenerLibro: {ex.Message}");
+                return Json(new { libro = (Libro)null, mensaje = "Ocurrió un error al obtener el libro.", detalle = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        [HttpGet]
+        public async Task<JsonResult> ListarLibro()
+        {
+            try
+            {
+                var response = await _httpClient.GetAsync(_apiBaseUrl + "libro");
+                response.EnsureSuccessStatusCode();
+
+                var result = await response.Content.ReadAsStringAsync();
+                var listaLibros = JsonConvert.DeserializeObject<List<Libro>>(result);
+
+                return Json(new { data = listaLibros }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error en ListarLibro: {ex.Message}");
+                return Json(new { data = new List<Libro>(), mensaje = "Ocurrió un error al listar los libros.", detalle = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
 
         [HttpPost]
         public async Task<JsonResult> GuardarLibro(string objeto, HttpPostedFileBase imagenArchivo)
@@ -124,62 +317,49 @@ namespace ProyectoBiblioteca.Controllers
             {
                 var libro = JsonConvert.DeserializeObject<Libro>(objeto);
 
-            
+                // Subir la imagen a Firebase si existe una imagen nueva
+                if (imagenArchivo != null)
+                {
+                    var firebaseLogica = new FirebaseLogica();
+                    var extension = Path.GetExtension(imagenArchivo.FileName);
+                    var nombreArchivo = libro.Titulo.Replace(" ", "_") + extension;
+
+                    var rutaImagen = await firebaseLogica.SubirStorage(imagenArchivo.InputStream, nombreArchivo);
+
+                    if (string.IsNullOrEmpty(rutaImagen))
+                    {
+                        response.mensaje = "Error al subir la imagen a Firebase Storage.";
+                        return Json(response, JsonRequestBehavior.AllowGet);
+                    }
+
+                    libro.RutaPortada = rutaImagen;
+                    libro.NombrePortada = nombreArchivo;
+                }
+
+                // Serializar el objeto libro a JSON
+                var json = JsonConvert.SerializeObject(libro);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                // Enviar los datos del libro a la API externa
+                HttpResponseMessage apiResponse;
                 if (libro.IdLibro == 0)
                 {
-                    if (imagenArchivo != null)
-                    {
-                        var firebaseLogica = new FirebaseLogica();
-                        var extension = Path.GetExtension(imagenArchivo.FileName);
-                        var nombreArchivo = libro.Titulo.Replace(" ", "_") + extension;
-
-                        var rutaImagen = await firebaseLogica.SubirStorage(imagenArchivo.InputStream, nombreArchivo);
-
-                        if (string.IsNullOrEmpty(rutaImagen))
-                        {
-                            response.mensaje = "Error al subir la imagen a Firebase Storage.";
-                            return Json(response, JsonRequestBehavior.AllowGet);
-                        }
-
-                        libro.RutaPortada = rutaImagen;
-                        libro.NombrePortada = nombreArchivo;
-                    }
-
-                    int id = LibroLogica.Instancia.Registrar(libro);
-                    libro.IdLibro = id;
-
-                    response.resultado = id > 0;
-                    if (!response.resultado)
-                    {
-                        response.mensaje = "Error al registrar el libro.";
-                    }
+                    apiResponse = await _httpClient.PostAsync(_apiBaseUrl + "libro", content);
                 }
-                else // Modificar un libro existente
+                else
                 {
-                    // Subir una nueva imagen si se ha proporcionado
-                    if (imagenArchivo != null)
-                    {
-                        var firebaseLogica = new FirebaseLogica();
-                        var extension = Path.GetExtension(imagenArchivo.FileName);
-                        var nombreArchivo = libro.IdLibro + extension;
+                    apiResponse = await _httpClient.PutAsync(_apiBaseUrl + $"libro/{libro.IdLibro}", content);
+                }
 
-                        var rutaImagen = await firebaseLogica.SubirStorage(imagenArchivo.InputStream, nombreArchivo);
+                apiResponse.EnsureSuccessStatusCode();
 
-                        if (string.IsNullOrEmpty(rutaImagen))
-                        {
-                            response.mensaje = "Error al subir la imagen a Firebase Storage.";
-                            return Json(response, JsonRequestBehavior.AllowGet);
-                        }
+                var result = await apiResponse.Content.ReadAsStringAsync();
+                var resultado = JsonConvert.DeserializeObject<bool>(result);
 
-                        libro.RutaPortada = rutaImagen; // Asignar la nueva URL con el token
-                        libro.NombrePortada = nombreArchivo;
-                    }
-
-                    response.resultado = LibroLogica.Instancia.Modificar(libro);
-                    if (!response.resultado)
-                    {
-                        response.mensaje = "Error al modificar el libro.";
-                    }
+                response.resultado = resultado;
+                if (!resultado)
+                {
+                    response.mensaje = libro.IdLibro == 0 ? "Error al registrar el libro." : "Error al modificar el libro.";
                 }
             }
             catch (Exception ex)
@@ -191,13 +371,34 @@ namespace ProyectoBiblioteca.Controllers
             return Json(response, JsonRequestBehavior.AllowGet);
         }
 
+
+
         [HttpPost]
-        public JsonResult EliminarLibro(int id)
+        public async Task<JsonResult> EliminarLibro(int id)
         {
-            bool respuesta = false;
-            respuesta = LibroLogica.Instancia.Eliminar(id);
-            return Json(new { resultado = respuesta }, JsonRequestBehavior.AllowGet);
+            try
+            {
+                // Realizar la solicitud DELETE a la API externa
+                var response = await _httpClient.DeleteAsync(_apiBaseUrl + $"libro/{id}");
+                response.EnsureSuccessStatusCode();
+
+                // Leer la respuesta de la API externa
+                var result = await response.Content.ReadAsStringAsync();
+                var resultado = JsonConvert.DeserializeObject<bool>(result);
+
+                // Devolver el resultado como JSON
+                return Json(new { resultado }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                // Manejo de errores
+                Console.WriteLine($"Error en EliminarLibro: {ex.Message}");
+                return Json(new { resultado = false, mensaje = "Ocurrió un error al eliminar el libro.", detalle = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
         }
+
+
+
 
 
         [HttpGet]

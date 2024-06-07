@@ -259,6 +259,7 @@
     <Compile Include="App_Start\RouteConfig.cs" />
     <Compile Include="Configuracion\AsIsBundleOrderer.cs" />
     <Compile Include="Controllers\AdminController.cs" />
+    <Compile Include="Controllers\ApiClient.cs" />
     <Compile Include="Controllers\BibliotecaController.cs" />
     <Compile Include="Controllers\LoginController.cs" />
     <Compile Include="Controllers\PersonaController.cs" />
@@ -270,6 +271,7 @@
     <Compile Include="Logica\CategoriaLogica.cs" />
     <Compile Include="Logica\Conexion.cs" />
     <Compile Include="Logica\EditorialLogica.cs" />
+    <Compile Include="Logica\HashHelper.cs" />
     <Compile Include="Logica\LibroLogica.cs" />
     <Compile Include="Logica\FirebaseLogica.cs" />
     <Compile Include="Logica\PersonaLogica.cs" />
