@@ -5,7 +5,6 @@
 }
 
 <div class="card shadow mb-4">
-
     <div class="card-body">
         <div class="form-row align-items-end">
             <div class="col-3">
@@ -25,17 +24,21 @@
                     <button id="btnbuscar" class="btn btn-primary btn-block">Buscar</button>
                 </div>
             </div>
+            <div class="col-2">
+                <div class="form-group">
+                    <button id="btnExportarExcel" class="btn btn-success btn-block">
+                        <i class="fas fa-file-excel"></i> Exportar a Excel
+                    </button>
+                </div>
+            </div>
         </div>
-
     </div>
 </div>
 
 <div class="card shadow">
-
     <div class="card-body">
         <div class="row">
             <div class="col-sm-12">
-
                 <div class="table-responsive">
                     <table class="table table-bordered" id="tabla" style="width:100%" cellspacing="0">
                         <thead>
@@ -65,7 +68,6 @@
                 </div>
             </div>
         </div>
-
     </div>
 </div>
 
@@ -121,13 +123,12 @@
     </div>
 </div>
 
-
 @section scripts{
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
     <script>
         var tabladata;
 
         $(document).ready(function () {
-
             jQuery.ajax({
                 url: '@Url.Action("ListarPersona", "Biblioteca")',
                 type: "GET",
@@ -167,7 +168,6 @@
                     console.log(error)
                 }
             });
-
 
             tabladata = $('#tabla').DataTable({
                 responsive:true,
@@ -215,73 +215,110 @@
                                     $("<i>").addClass("fas fa-undo-alt")
                                 ).attr({ "data-informacion": JSON.stringify(row) })[0].outerHTML
                             }
-
-
                         },
                         "orderable": false,
                         "searchable": false,
-                        "width": "90px"
+                        "width": "80px"
                     }
-
+                ],
+                order: [[0, "desc"]],
+                dom: 'Bfrtip',
+                buttons: [
+                    {
+                        extend: 'excelHtml5',
+                        text: 'Exportar a Excel',
+                        filename: 'Prestamos',
+                        title: null,
+                        customize: function (xlsx) {
+                            var sheet = xlsx.xl.worksheets['sheet1.xml'];
+                            $('row c[r^="G"]', sheet).each(function () {
+                                if ($(this).text() == 'PENDIENTE') {
+                                    $(this).attr('s', '20');
+                                } else {
+                                    $(this).attr('s', '40');
+                                }
+                            });
+                        }
+                    }
                 ],
                 "language": {
-                    "url": "//cdn.datatables.net/plug-ins/1.10.25/i18n/Spanish.json"
-                }
-            });
-        })
-
-        $("#btnbuscar").on("click", function () {
-            tabladata.ajax.url('@Url.Action("Listar", "Prestamo")' + "?idestadoprestamo=" + $("#cboestadoprestamo").val() + "&idpersona=" + $("#cbolectores").val()).load();
-        })
-
-
-        $(document).on('click', '.btn-devolver', function (event) {
-            var json = $(this).data("informacion")
-
-            $("#txtestadolibro").val(json.EstadoEntregado);
-            $("#btnGuardar").data("idprestamo", json.IdPrestamo);
-
-            $("#devolvermodal").modal("show");
-
-
-        });
-
-        $(document).on('click', '.btn-detalle', function (event) {
-            var json = $(this).data("informacion")
-
-            $("#txtviewestadolibroentregado").val(json.EstadoEntregado);
-            $("#txtviewestadolibrorecibido").val(json.EstadoRecibido);
-
-            $("#detallemodal").modal("show");
-        });
-
-        $("#btnGuardar").on("click", function () {
-            var _idprestamo = $(this).data("idprestamo");
-
-            jQuery.ajax({
-                url: '@Url.Action("Devolver", "Prestamo")',
-                type: "POST",
-                data: JSON.stringify({ estadorecibido: $("#txtestadolibrorecibido").val() , idprestamo : _idprestamo }),
-                dataType: "json",
-                contentType: "application/json; charset=utf-8",
-                success: function (data) {
-                    if (data.resultado) {
-                        tabladata.ajax.reload();
-                        swal("Listo", "Se registro la devolución", "success");
-                        $("#devolvermodal").modal("hide");
-                    } else {
-                        swal("Lo sentimos", "No se pudo registro la devolución", "warning");
-                    }
+                    "url": "//cdn.datatables.net/plug-ins/1.10.15/i18n/Spanish.json"
                 },
-                error: function (error) {
-                    console.log(error)
-                }
+                "columnDefs": [
+                    { targets: '_all', orderable: false }
+                ]
             });
-        })
 
+            $('#btnbuscar').on('click', function () {
+                var idestadoprestamo = $("#cboestadoprestamo").val();
+                var idpersona = $("#cbolectores").val();
 
+                var nuevaurl = '@Url.Action("Listar", "Prestamo")' + "?idestadoprestamo=" + idestadoprestamo + "&idpersona=" + idpersona;
+                tabladata.ajax.url(nuevaurl).load();
+            });
 
+            $('#tabla tbody').on('click', '.btn-devolver', function () {
+                var data = $(this).data("informacion");
+                $("#txtestadolibro").val(data.EstadoRecibido);
+                $("#btnGuardar").data("id", data.IdPrestamo);
+                $('#devolvermodal').modal('show');
+            });
 
+            $('#tabla tbody').on('click', '.btn-detalle', function () {
+                var data = $(this).data("informacion");
+                $("#txtviewestadolibroentregado").val(data.EstadoEntregado);
+                $("#txtviewestadolibrorecibido").val(data.EstadoRecibido);
+                $('#detallemodal').modal('show');
+            });
+
+            $('#btnGuardar').on('click', function () {
+                var id = $(this).data("id");
+
+                var request = {
+                    oPrestamo: {
+                        IdPrestamo: id,
+                        EstadoRecibido: $("#txtestadolibrorecibido").val()
+                    }
+                };
+
+                jQuery.ajax({
+                    url: '@Url.Action("Devolver", "Prestamo")',
+                    type: "POST",
+                    data: JSON.stringify(request),
+                    dataType: "json",
+                    contentType: "application/json; charset=utf-8",
+                    success: function (data) {
+                        if (data.resultado) {
+                            tabladata.ajax.reload();
+                            $('#devolvermodal').modal('hide');
+                            swal("Mensaje", "Se guardó los cambios", "success")
+                        } else {
+                            swal("Mensaje", "No se pudo guardar los cambios", "error")
+                        }
+                    },
+                    error: function (error) {
+                        console.log(error)
+                    }
+                });
+            });
+
+            $('#btnExportarExcel').on('click', function () {
+                var tableData = tabladata.rows().data().toArray();
+                var exportData = tableData.map(row => ({
+                    EstadoPrestamo: row.oEstadoPrestamo.Descripcion,
+                    CodigoLector: row.oPersona.Codigo,
+                    NombreLector: row.oPersona.Nombre + " " + row.oPersona.Apellido,
+                    TituloLibro: row.oLibro.Titulo,
+                    FechaDevolucion: row.TextoFechaDevolucion,
+                    FechaDevolucionConfirmado: row.TextoFechaConfirmacionDevolucion
+                }));
+
+                var ws = XLSX.utils.json_to_sheet(exportData);
+                var wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Prestamos");
+                XLSX.writeFile(wb, "Prestamos.xlsx");
+            });
+        });
     </script>
 }
 
