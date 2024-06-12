@@ -41,6 +41,7 @@ namespace ProyectoBiblioteca.Controllers
 
         private readonly HttpClient _httpClient;
         private readonly string _apiBaseUrl = "https://webapibibliloteca2.azurewebsites.net/api/";
+        private readonly string _apiBaseUrl2 = "https://webapiusuariosdefinitive.azurewebsites.net/api/";
 
         public BibliotecaController()
         {
@@ -317,7 +318,6 @@ namespace ProyectoBiblioteca.Controllers
             {
                 var libro = JsonConvert.DeserializeObject<Libro>(objeto);
 
-                // Subir la imagen a Firebase si existe una imagen nueva
                 if (imagenArchivo != null)
                 {
                     var firebaseLogica = new FirebaseLogica();
@@ -336,11 +336,9 @@ namespace ProyectoBiblioteca.Controllers
                     libro.NombrePortada = nombreArchivo;
                 }
 
-                // Serializar el objeto libro a JSON
                 var json = JsonConvert.SerializeObject(libro);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                // Enviar los datos del libro a la API externa
                 HttpResponseMessage apiResponse;
                 if (libro.IdLibro == 0)
                 {
@@ -351,15 +349,20 @@ namespace ProyectoBiblioteca.Controllers
                     apiResponse = await _httpClient.PutAsync(_apiBaseUrl + $"libro/{libro.IdLibro}", content);
                 }
 
-                apiResponse.EnsureSuccessStatusCode();
-
-                var result = await apiResponse.Content.ReadAsStringAsync();
-                var resultado = JsonConvert.DeserializeObject<bool>(result);
-
-                response.resultado = resultado;
-                if (!resultado)
+                if (apiResponse.IsSuccessStatusCode)
                 {
-                    response.mensaje = libro.IdLibro == 0 ? "Error al registrar el libro." : "Error al modificar el libro.";
+                    var result = await apiResponse.Content.ReadAsStringAsync();
+                    var resultado = JsonConvert.DeserializeObject<bool>(result);
+                    response.resultado = resultado;
+
+                    if (!resultado)
+                    {
+                        response.mensaje = libro.IdLibro == 0 ? "Error al registrar el libro." : "Error al modificar el libro.";
+                    }
+                }
+                else
+                {
+                    response.mensaje = $"Error en la respuesta del servidor: {apiResponse.ReasonPhrase}";
                 }
             }
             catch (Exception ex)
@@ -397,29 +400,47 @@ namespace ProyectoBiblioteca.Controllers
             }
         }
 
-
-
-
-
         [HttpGet]
-        public JsonResult ListarTipoPersona()
+        public async Task<JsonResult> ListarTipoPersona()
         {
-            List<TipoPersona> oLista = new List<TipoPersona>();
-            oLista = TipoPersonaLogica.Instancia.Listar();
-            return Json(new { data = oLista }, JsonRequestBehavior.AllowGet);
+            try
+            {
+                var response = await _httpClient.GetAsync(_apiBaseUrl2 + "tipopersona");
+                response.EnsureSuccessStatusCode();
+
+                var result = await response.Content.ReadAsStringAsync();
+                var tiposPersona = JsonConvert.DeserializeObject<List<TipoPersona>>(result);
+
+                return Json(new { data = tiposPersona }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error en ListarTipoPersona: {ex.Message}");
+                return Json(new { data = new List<TipoPersona>(), mensaje = "Ocurrió un error al listar los tipos de persona.", detalle = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
         }
 
 
         [HttpGet]
-        public JsonResult ListarPersona()
+        public async Task<JsonResult> ListarPersona()
         {
-            List<Persona> oLista = new List<Persona>();
+            try
+            {
+                var response = await _httpClient.GetAsync(_apiBaseUrl2 + "persona");
+                response.EnsureSuccessStatusCode();
 
-            oLista = PersonaLogica.Instancia.Listar();
+                var result = await response.Content.ReadAsStringAsync();
+                var personas = JsonConvert.DeserializeObject<List<Persona>>(result);
 
-            return Json(new { data = oLista }, JsonRequestBehavior.AllowGet);
+                return Json(new { data = personas }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error en ListarPersona: {ex.Message}");
+                return Json(new { data = new List<Persona>(), mensaje = "Ocurrió un error al listar las personas.", detalle = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
         }
-        [HttpPost]
+
         public JsonResult GuardarPersona(Persona objeto)
         {
             bool respuesta = false;
@@ -427,12 +448,34 @@ namespace ProyectoBiblioteca.Controllers
             respuesta = (objeto.IdPersona == 0) ? PersonaLogica.Instancia.Registrar(objeto) : PersonaLogica.Instancia.Modificar(objeto);
             return Json(new { resultado = respuesta }, JsonRequestBehavior.AllowGet);
         }
+
+
         [HttpPost]
-        public JsonResult EliminarPersona(int id)
+        public async Task<JsonResult> EliminarPersona(int id)
         {
-            bool respuesta = false;
-            respuesta = PersonaLogica.Instancia.Eliminar(id);
-            return Json(new { resultado = respuesta }, JsonRequestBehavior.AllowGet);
+            var response = new Response() { resultado = false, mensaje = "" };
+
+            try
+            {
+                var apiResponse = await _httpClient.DeleteAsync($"{_apiBaseUrl2}persona/{id}");
+                apiResponse.EnsureSuccessStatusCode();
+
+                var result = await apiResponse.Content.ReadAsStringAsync();
+                var resultado = JsonConvert.DeserializeObject<bool>(result);
+
+                response.resultado = resultado;
+                if (!resultado)
+                {
+                    response.mensaje = "Error al eliminar la persona.";
+                }
+            }
+            catch (Exception ex)
+            {
+                response.resultado = false;
+                response.mensaje = $"Error durante la operación: {ex.Message}";
+            }
+
+            return Json(response, JsonRequestBehavior.AllowGet);
         }
 
 

@@ -84,106 +84,112 @@
     </div>
 </div>
 
+<!-- Start and Stop Buttons -->
+<div class="row">
+    <div class="col-md-6">
+        <button id="startCapture" class="btn btn-primary">Iniciar Captura</button>
+    </div>
+    <div class="col-md-6">
+        <button id="stopCapture" class="btn btn-danger" disabled>Detener Captura y Descargar</button>
+    </div>
+</div>
+
 @section scripts{
-<script>
+    <script>
+    let isCapturing = false;
+    let captureData = [];
 
-        $(document).ready(function () {
-
-            jQuery.ajax({
+    async function fetchDataAndUpdateState() {
+        try {
+            const librosResponse = await jQuery.ajax({
                 url: '@Url.Action("ListarLibro", "Biblioteca")',
                 type: "GET",
-                data: null,
-                dataType: "json",
-                contentType: "application/json; charset=utf-8",
-                success: function (data) {
-
-                    if (data.data != null) {
-                        $("#div_libros").text(data.data.length)
-
-                    } else {
-                        $("#div_libros").text("0");
-                    }
-                },
-                error: function (error) {
-                    console.log(error)
-                },
-                beforeSend: function () {
-
-                },
+                dataType: "json"
             });
 
-            jQuery.ajax({
+            const lectoresResponse = await jQuery.ajax({
                 url: '@Url.Action("ListarPersona", "Biblioteca")',
                 type: "GET",
-                data: null,
-                dataType: "json",
-                contentType: "application/json; charset=utf-8",
-                success: function (data) {
-                    if (data.data != null) {
-                        var a = data.data.filter(item => item.oTipoPersona.IdTipoPersona == 3)
-                        $("#div_lectores").text(a.length)
-
-                    } else {
-                        $("#div_lectores").text("0");
-                    }
-                },
-                error: function (error) {
-                    console.log(error)
-                },
-                beforeSend: function () {
-
-                },
+                dataType: "json"
             });
 
-            jQuery.ajax({
+            const prestamosResponse = await jQuery.ajax({
                 url: '@Url.Action("Listar", "Prestamo")' + "?idestadoprestamo=0&idpersona=0",
                 type: "GET",
-                data: null,
-                dataType: "json",
-                contentType: "application/json; charset=utf-8",
-                success: function (data) {
-
-                    if (data.data != null) {
-                        $("#div_prestamos").text(data.data.length)
-
-                    } else {
-                        $("#div_prestamos").text("0");
-                    }
-                },
-                error: function (error) {
-                    console.log(error)
-                },
-                beforeSend: function () {
-
-                },
+                dataType: "json"
             });
 
-            jQuery.ajax({
-                url: '@Url.Action("Listar", "Prestamo")' + "?idestadoprestamo=0&idpersona=0",
+            const pendientesResponse = await jQuery.ajax({
+                url: '@Url.Action("Listar", "Prestamo")' + "?idestadoprestamo=1&idpersona=0",
                 type: "GET",
-                data: null,
-                dataType: "json",
-                contentType: "application/json; charset=utf-8",
-                success: function (data) {
-
-                    if (data.data != null) {
-                        var a = data.data.filter(item => item.oEstadoPrestamo.IdEstadoPrestamo == 1)
-                        $("#div_pendientes").text(a.length)
-
-                    } else {
-                        $("#div_pendientes").text("0");
-                    }
-                },
-                error: function (error) {
-                    console.log(error)
-                },
-                beforeSend: function () {
-
-                },
+                dataType: "json"
             });
 
-        })
+            return {
+                libros: librosResponse.data.length,
+                lectores: lectoresResponse.data.filter(item => item.oTipoPersona.IdTipoPersona == 3).length,
+                prestamos: prestamosResponse.data.length,
+                pendientes: pendientesResponse.data.filter(item => item.oEstadoPrestamo.IdEstadoPrestamo == 1).length
+            };
+        } catch (error) {
+            console.error('Error fetching data:', error);
+            return null;
+        }
+    }
 
+    function fetchAndStoreData() {
+        if (!isCapturing) return;
 
-</script>
+        fetchDataAndUpdateState().then(data => {
+            if (data) {
+                const timestamp = new Date().toISOString();
+                const newData = { timestamp, ...data };
+                captureData.push(newData);
+                localStorage.setItem('captureData', JSON.stringify(captureData));
+            }
+            setTimeout(fetchAndStoreData, 5000); // Fetch every 5 seconds
+        });
+    }
+
+    function startCapture() {
+        isCapturing = true;
+        localStorage.setItem('isCapturing', isCapturing);
+        alert("La captura ha comenzado.");
+        document.getElementById("startCapture").disabled = true;
+        document.getElementById("stopCapture").disabled = false;
+        fetchAndStoreData();
+    }
+
+    function stopCaptureAndDownload() {
+        isCapturing = false;
+        localStorage.setItem('isCapturing', isCapturing);
+        alert("La captura ha terminado. Descargando datos.");
+        document.getElementById("startCapture").disabled = false;
+        document.getElementById("stopCapture").disabled = true;
+        const dataStr = JSON.stringify(captureData, null, 2);
+        const blob = new Blob([dataStr], { type: "text/plain" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "captura_datos.txt";
+        a.click();
+        URL.revokeObjectURL(url);
+        captureData = [];
+        localStorage.removeItem('captureData');
+    }
+
+    document.getElementById("startCapture").addEventListener("click", startCapture);
+    document.getElementById("stopCapture").addEventListener("click", stopCaptureAndDownload);
+
+    // Restore state on page load
+    window.onload = () => {
+        isCapturing = localStorage.getItem('isCapturing') === 'true';
+        if (isCapturing) {
+            document.getElementById("startCapture").disabled = true;
+            document.getElementById("stopCapture").disabled = false;
+            captureData = JSON.parse(localStorage.getItem('captureData')) || [];
+            fetchAndStoreData();
+        }
+    };
+    </script>
 }
